@@ -167,12 +167,19 @@ def voiceover(lines, lead_in=0.35, gap=0.28, tail=1.6, length_scale=1.0):
     return audio, timeline
 
 
-def caption_chunks(timeline, max_words=3, max_chars=15):
-    """Group words into short caption chunks (the fast 'word-pop' style)."""
+def caption_chunks(timeline, max_words=3, max_chars=15, max_px=None):
+    """Group words into short caption chunks (the fast 'word-pop' style).
+
+    max_px: if set, start a new chunk rather than let a chunk get wider than this (keeps captions on one line).
+    """
     chunks = []
+    fnt = font("Black", 92)
     for li, line in enumerate(timeline):
         cur = []
         for w in line["words"]:
+            if max_px and cur and fnt.getlength(" ".join(x[0] for x in cur + [w])) > max_px:
+                chunks.append({"line": li, "words": cur})
+                cur = []
             cur.append(w)
             text = " ".join(x[0] for x in cur)
             if len(cur) >= max_words or len(text) >= max_chars or w[0][-1] in ".,:?!":
@@ -539,12 +546,12 @@ def build_title(title, subtitle):
     return add_glow(layer, radius=12, strength=1.3)
 
 
-def draw_hud_pills(frame, level, err_text, err_color):
+def draw_hud_pills(frame, level, err_text, err_color, label="ERROR"):
     d = ImageDraw.Draw(frame)
     rounded_pill(d, (60, 150, 330, 234), fill=PURPLE + (235,))
     text_center(d, (195, 192), f"LEVEL {level}", font("Black", 44), WHITE)
     rounded_pill(d, (600, 150, 1020, 234), fill=(15, 18, 40, 230), outline=err_color + (255,), width=5)
-    text_center(d, (705, 192), "ERROR", font("Bold", 34), MUTED)
+    text_center(d, (705, 192), label, font("Bold", 34), MUTED)
     text_center(d, (905, 192), err_text, font("Black", 50), err_color)
 
 
