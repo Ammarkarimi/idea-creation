@@ -621,3 +621,21 @@ def draw_training_readout(frame, x0, x1, y, step, total, right_text, alpha):
     p = step / total
     if p > 0:
         d.rounded_rectangle((x0, y + 34, x0 + (x1 - x0) * p, y + 46), radius=6, fill=fill(GREEN))
+
+
+def tag(text, fg, bg, size=40, pad=(26, 14), outline=None):
+    """A rounded label (pill) image with centred bold text."""
+    f = font("Black", size)
+    tw = f.getlength(text)
+    img = Image.new("RGBA", (int(tw + 2 * pad[0]), int(size + 2 * pad[1])), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    rounded_pill(d, (0, 0, img.width - 1, img.height - 1), fill=bg, outline=outline, width=4 if outline else 0,
+                 radius=min(img.height // 2, 28))
+    text_center(d, (img.width / 2, img.height / 2), text, f, fg)
+    return img
+
+
+def pop_in(frame, img, center, t, t0, dur=0.3):
+    if t >= t0:
+        g = ease_back((t - t0) / dur)
+        paste_scaled(frame, img, center, scale=g, alpha=clamp(g))

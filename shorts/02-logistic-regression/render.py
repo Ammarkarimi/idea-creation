@@ -19,8 +19,8 @@ from common import (  # noqa: E402
     CYAN, FPS, GREEN, H, MUTED, ORANGE, PINK, PURPLE, SR, W, WHITE, YELLOW, PlotBox, Timeline,
     add_glow, build_confetti, build_static, build_title, caption_chunks, clamp, dashed_line, draw_caption,
     draw_hud_pills, draw_level_cleared, draw_training_readout, ease_back, ease_in_out, ease_out, encode, font,
-    lerp, lerp_color, mix, music_bed, num_to_words, paste_scaled, rounded_pill, sfx_blip, sfx_boing, sfx_buzz,
-    sfx_levelup, sfx_whoosh, text_center, voiceover, write_wav,
+    lerp, lerp_color, mix, music_bed, num_to_words, paste_scaled, pop_in, rounded_pill, sfx_blip, sfx_boing, sfx_buzz,
+    sfx_levelup, sfx_whoosh, tag, text_center, voiceover, write_wav,
 )
 
 # ---------------------------------------------------------------- data + models
@@ -342,23 +342,6 @@ def draw_plot_layer(t):
             d.ellipse([cx - r * 0.45, cy - r * 0.45, cx + r * 0.45, cy + r * 0.45], fill=WHITE + (255,))
 
     return PLOT.finish_layer(lay)
-
-
-def tag(text, fg, bg, size=40, pad=(26, 14), outline=None):
-    f = font("Black", size)
-    tw = f.getlength(text)
-    img = Image.new("RGBA", (int(tw + 2 * pad[0]), int(size + 2 * pad[1])), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    rounded_pill(d, (0, 0, img.width - 1, img.height - 1), fill=bg, outline=outline, width=4 if outline else 0,
-                 radius=min(img.height // 2, 28))
-    text_center(d, (img.width / 2, img.height / 2), text, f, fg)
-    return img
-
-
-def pop_in(frame, img, center, t, t0, dur=0.3):
-    if t >= t0:
-        g = ease_back((t - t0) / dur)
-        paste_scaled(frame, img, center, scale=g, alpha=clamp(g))
 
 
 def draw_overlays(frame, t):
