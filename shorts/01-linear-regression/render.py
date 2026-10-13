@@ -10,16 +10,18 @@ import os
 import sys
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 from common import (  # noqa: E402
-    AXIS, BG_BOTTOM, BG_TOP, CYAN, FPS, GREEN, GRID, H, MUTED, ORANGE, PINK, PURPLE, SR, W, WHITE, YELLOW,
-    add_glow, caption_chunks, caption_image, clamp, dashed_line, ease_back, ease_in_out, ease_out, encode,
-    font, lerp, lerp_color, mix, music_bed, paste_scaled, rounded_pill, sfx_blip, sfx_boing, sfx_levelup,
-    sfx_whoosh, text_center, vertical_gradient, voiceover, write_wav, zigzag,
+    CYAN, FPS, GREEN, H, MUTED, PINK, SR, W, WHITE, YELLOW, PlotBox,
+    add_glow, build_confetti, build_title, caption_chunks, clamp, dashed_line, draw_caption,
+    draw_hud_pills, draw_level_cleared, draw_training_readout, ease_back, ease_in_out, ease_out, encode, font, lerp, lerp_color, mix,
+    music_bed, paste_scaled, rounded_pill, sfx_blip, sfx_boing, sfx_levelup, sfx_whoosh, text_center,
+    voiceover, write_wav, zigzag,
 )
+from common import build_static as common_build_static  # noqa: E402
 
 SCRIPT = [
     "This line is playing a game, and it's how machine learning begins.",
@@ -193,51 +195,8 @@ def error_display(t):
 # ---------------------------------------------------------------- drawing
 
 def build_static():
-    img = vertical_gradient((W, H), BG_TOP, BG_BOTTOM).convert("RGBA")
-    d = ImageDraw.Draw(img)
-    # Faint full-screen grid for the "game board" feel.
-    for x in range(0, W, 60):
-        d.line([(x, 0), (x, H)], fill=(255, 255, 255, 6))
-    for y in range(0, H, 60):
-        d.line([(0, y), (W, y)], fill=(255, 255, 255, 6))
-    # Plot grid + axes.
-    for gx in range(0, 11, 2):
-        d.line([(px(gx), PY_TOP), (px(gx), PY_BOT)], fill=GRID, width=2)
-        text_center(d, (px(gx), PY_BOT + 34), str(gx), font("SemiBold", 30), MUTED)
-    for gy in range(0, 101, 25):
-        d.line([(PX0, py(gy)), (PX1, py(gy))], fill=GRID, width=2)
-        text_center(d, (PX0 - 20, py(gy)), str(gy), font("SemiBold", 30), MUTED, anchor="rm")
-    d.line([(PX0, PY_BOT), (PX1, PY_BOT)], fill=AXIS, width=4)
-    d.line([(PX0, PY_TOP), (PX0, PY_BOT)], fill=AXIS, width=4)
-    text_center(d, ((PX0 + PX1) / 2, PY_BOT + 82), "HOURS STUDIED", font("Bold", 34), AXIS)
-    lab = Image.new("RGBA", (420, 60), (0, 0, 0, 0))
-    text_center(ImageDraw.Draw(lab), (210, 30), "EXAM SCORE", font("Bold", 34), AXIS)
-    lab = lab.rotate(90, expand=True)
-    img.alpha_composite(lab, (28, int((PY_TOP + PY_BOT) / 2 - lab.height / 2)))
-    # Vignette.
-    yy, xx = np.mgrid[0:H, 0:W]
-    v = ((xx - W / 2) / (W * 0.75)) ** 2 + ((yy - H / 2) / (H * 0.7)) ** 2
-    shade = Image.fromarray((np.clip(v, 0, 1) * 120).astype(np.uint8), "L")
-    dark = Image.new("RGBA", (W, H), (0, 0, 0, 255))
-    dark.putalpha(shade)
-    img.alpha_composite(dark)
-    return img
-
-
-def build_title():
-    layer = Image.new("RGBA", (W, 200), (0, 0, 0, 0))
-    d = ImageDraw.Draw(layer)
-    text_center(d, (W / 2, 80), "LINEAR REGRESSION", font("Black", 74), CYAN)
-    text_center(d, (W / 2, 150), "ML AS A GAME  ·  EP 1", font("Bold", 32), MUTED)
-    return add_glow(layer, radius=12, strength=1.3)
-
-
-def build_confetti(n=140, seed=3):
-    r = np.random.default_rng(seed)
-    cols = [CYAN, PINK, YELLOW, GREEN, PURPLE, ORANGE]
-    return [dict(x=r.uniform(0, W), y=r.uniform(-400, -20), vx=r.uniform(-80, 80), vy=r.uniform(250, 650),
-                 rot=r.uniform(0, 6.28), vr=r.uniform(-8, 8), w=r.uniform(14, 26), h=r.uniform(8, 14),
-                 c=cols[int(r.integers(0, len(cols)))]) for _ in range(n)]
+    plot = PlotBox(PX0, PX1, PY_TOP, PY_BOT, (0, 10), (0, 100))
+    return common_build_static(plot, list(range(0, 11, 2)), list(range(0, 101, 25)), "HOURS STUDIED", "EXAM SCORE")
 
 
 def draw_plot_layer(t):
@@ -340,15 +299,7 @@ def draw_plot_layer(t):
 
 
 def draw_hud(frame, t):
-    d = ImageDraw.Draw(frame)
-    # LEVEL pill.
-    rounded_pill(d, (60, 150, 330, 234), fill=PURPLE + (235,))
-    text_center(d, (195, 192), "LEVEL 1", font("Black", 44), WHITE)
-    # ERROR pill (pulses red when it changes a lot).
-    txt, col = error_display(t)
-    rounded_pill(d, (600, 150, 1020, 234), fill=(15, 18, 40, 230), outline=col + (255,), width=5)
-    text_center(d, (705, 192), "ERROR", font("Bold", 34), MUTED)
-    text_center(d, (905, 192), txt, font("Black", 50), col)
+    draw_hud_pills(frame, 1, *error_display(t))
 
     # Title -> formula swap.
     tf = start(FORMULA) + 0.15
@@ -376,16 +327,8 @@ def draw_hud(frame, t):
     if start(TRAIN) <= t < start(FORMULA) + 0.1:
         lp = line_params(t)
         a = clamp((t - start(TRAIN)) / 0.3) * (1 - clamp((t - start(FORMULA)) / 0.1))
-        fill = lambda c: c + (int(255 * a),)  # noqa: E731
-        y = PY_BOT + 140
-        text_center(d, (PX0, y), f"TRAINING  STEP {train_step(t):02d}/{len(TRAJ) - 1}", font("Bold", 34),
-                    fill(WHITE), anchor="lm")
-        text_center(d, (PX1, y), f"m {lp[0]:5.1f}   b {lp[1]:5.1f}", font("Bold", 34), fill(MUTED), anchor="rm")
-        bar = (PX0, y + 34, PX1, y + 46)
-        d.rounded_rectangle(bar, radius=6, fill=lerp_color(BG_BOTTOM, (60, 66, 104), a))
-        p = train_step(t) / (len(TRAJ) - 1)
-        if p > 0:
-            d.rounded_rectangle((PX0, y + 34, PX0 + (PX1 - PX0) * p, y + 46), radius=6, fill=fill(GREEN))
+        draw_training_readout(frame, PX0, PX1, PY_BOT + 140, train_step(t), len(TRAJ) - 1,
+                              f"m {lp[0]:5.1f}   b {lp[1]:5.1f}", a)
 
     # Prediction bubble.
     t78 = word_time(PREDICT, "seventy")
@@ -408,56 +351,7 @@ def draw_hud(frame, t):
 
 
 def draw_cta(frame, t):
-    tc = start(CTA)
-    if t < tc:
-        return
-    g = clamp((t - tc) / 0.3)
-    shade = Image.new("RGBA", (W, H), (5, 6, 16, int(170 * g)))
-    frame.alpha_composite(shade)
-    # Confetti.
-    d = ImageDraw.Draw(frame)
-    dt = t - tc
-    for c in CONFETTI:
-        x = c["x"] + c["vx"] * dt
-        y = c["y"] + c["vy"] * dt + 120 * dt * dt
-        if y > H + 40:
-            continue
-        a = c["rot"] + c["vr"] * dt
-        cw, ch = c["w"] / 2, c["h"] / 2 * abs(math.cos(a * 1.7))
-        ca, sa = math.cos(a), math.sin(a)
-        pts = [(x + ca * dx - sa * dy, y + sa * dx + ca * dy) for dx, dy in ((-cw, -ch), (cw, -ch), (cw, ch), (-cw, ch))]
-        d.polygon(pts, fill=c["c"])
-    # Big banner.
-    s = ease_back(dt / 0.45, s=2.2)
-    ban = Image.new("RGBA", (W, 330), (0, 0, 0, 0))
-    bd = ImageDraw.Draw(ban)
-    text_center(bd, (W / 2, 95), "LEVEL 1", font("Black", 120), WHITE)
-    text_center(bd, (W / 2, 225), "CLEARED!", font("Black", 136), GREEN)
-    paste_scaled(frame, add_glow(ban, radius=16, strength=1.4), (W / 2, 640), scale=s, alpha=clamp(s))
-    # Next level card.
-    tn = word_time(CTA, "next")
-    if t >= tn:
-        g2 = ease_back((t - tn) / 0.4)
-        card = Image.new("RGBA", (860, 200), (0, 0, 0, 0))
-        cd = ImageDraw.Draw(card)
-        rounded_pill(cd, (10, 10, 850, 190), fill=(28, 16, 56, 245), outline=PURPLE + (255,), width=6, radius=40)
-        text_center(cd, (430, 66), "NEXT LEVEL", font("Bold", 36), MUTED)
-        text_center(cd, (430, 130), "LOGISTIC REGRESSION", font("Black", 62), PURPLE)
-        paste_scaled(frame, card, (W / 2, 950), scale=g2, alpha=clamp(g2))
-
-
-def draw_caption(frame, t):
-    for c in CHUNKS:
-        if c["start"] - 0.05 <= t < c["end"]:
-            words = [w for w, _, _ in c["words"]]
-            active = -1
-            for k, (_, s, e) in enumerate(c["words"]):
-                if s - 0.04 <= t:
-                    active = k
-            img = caption_image(words, active)
-            pop = ease_back((t - c["start"] + 0.05) / 0.16, s=2.5)
-            paste_scaled(frame, img, (W / 2, CAPTION_Y), scale=0.85 + 0.15 * pop)
-            return
+    draw_level_cleared(frame, t, start(CTA), 1, "LOGISTIC REGRESSION", word_time(CTA, "next"), CONFETTI)
 
 
 def render_rgba(i, captions=True):
@@ -467,7 +361,7 @@ def render_rgba(i, captions=True):
     draw_hud(frame, t)
     draw_cta(frame, t)
     if captions:
-        draw_caption(frame, t)
+        draw_caption(frame, t, CHUNKS, CAPTION_Y)
     # Quick white flash on the hook's first frames.
     if t < 0.15:
         frame.alpha_composite(Image.new("RGBA", (W, H), (255, 255, 255, int(200 * (1 - t / 0.15)))))
@@ -482,7 +376,7 @@ def render_frame(i):
 
 def build_audio(voice):
     out = voice * 0.95
-    out = out + music_bed(len(out) / SR)
+    mix(out, music_bed(len(out) / SR), 0.0)
     mix(out, sfx_whoosh(0.7, 0.22), 0.0)
     span = (end(DATA) - start(DATA)) * 0.75
     for k in range(len(X)):
@@ -512,7 +406,7 @@ def setup():
     voice, TL = voiceover(SCRIPT)
     CHUNKS = caption_chunks(TL)
     STATIC = build_static()
-    TITLE_IMG = build_title()
+    TITLE_IMG = build_title("LINEAR REGRESSION", "ML AS A GAME  ·  EP 1")
     CONFETTI = build_confetti()
     DURATION = len(voice) / SR
     return voice
