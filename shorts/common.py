@@ -646,3 +646,19 @@ def pop_in(frame, img, center, t, t0, dur=0.3):
     if t >= t0:
         g = ease_back((t - t0) / dur)
         paste_scaled(frame, img, center, scale=g, alpha=clamp(g))
+
+
+def build_plain():
+    """Background without the plot axes (for the neuron explainer)."""
+    img = vertical_gradient((W, H), BG_TOP, BG_BOTTOM).convert("RGBA")
+    d = ImageDraw.Draw(img)
+    for x in range(0, W, 60):
+        d.line([(x, 0), (x, H)], fill=(255, 255, 255, 6))
+    for y in range(0, H, 60):
+        d.line([(0, y), (W, y)], fill=(255, 255, 255, 6))
+    yy, xx = np.mgrid[0:H, 0:W]
+    v = ((xx - W / 2) / (W * 0.75)) ** 2 + ((yy - H / 2) / (H * 0.7)) ** 2
+    dark = Image.new("RGBA", (W, H), (0, 0, 0, 255))
+    dark.putalpha(Image.fromarray((np.clip(v, 0, 1) * 120).astype(np.uint8), "L"))
+    img.alpha_composite(dark)
+    return img

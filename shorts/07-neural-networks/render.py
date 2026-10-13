@@ -16,11 +16,11 @@ from PIL import Image, ImageDraw
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 from common import (  # noqa: E402
-    BG_BOTTOM, BG_TOP, CYAN, FPS, GREEN, H, MUTED, ORANGE, PINK, PURPLE, SR, W, WHITE, YELLOW, PlotBox, Timeline,
-    add_glow, build_confetti, build_static, build_title, caption_chunks, clamp, draw_caption, draw_hud_pills,
+    CYAN, FPS, GREEN, H, MUTED, ORANGE, PINK, PURPLE, SR, W, WHITE, YELLOW, PlotBox, Timeline,
+    add_glow, build_confetti, build_plain, build_static, build_title, caption_chunks, clamp, draw_caption, draw_hud_pills,
     draw_level_cleared, ease_back, ease_out, encode, font, lerp, lerp_color, mix, music_bed,
     paste_scaled, pop_in, sfx_blip, sfx_boing, sfx_buzz, sfx_levelup, sfx_whoosh, tag, text_center,
-    vertical_gradient, voiceover, write_wav,
+    voiceover, write_wav,
 )
 
 
@@ -156,22 +156,6 @@ DURATION = 0.0
 
 def word(i, prefix, nth=0):
     return T.word(i, prefix, nth)
-
-
-def build_plain():
-    """Background without the plot axes (for the neuron explainer)."""
-    img = vertical_gradient((W, H), BG_TOP, BG_BOTTOM).convert("RGBA")
-    d = ImageDraw.Draw(img)
-    for x in range(0, W, 60):
-        d.line([(x, 0), (x, H)], fill=(255, 255, 255, 6))
-    for y in range(0, H, 60):
-        d.line([(0, y), (W, y)], fill=(255, 255, 255, 6))
-    yy, xx = np.mgrid[0:H, 0:W]
-    v = ((xx - W / 2) / (W * 0.75)) ** 2 + ((yy - H / 2) / (H * 0.7)) ** 2
-    dark = Image.new("RGBA", (W, H), (0, 0, 0, 255))
-    dark.putalpha(Image.fromarray((np.clip(v, 0, 1) * 120).astype(np.uint8), "L"))
-    img.alpha_composite(dark)
-    return img
 
 
 # ---------------------------------------------------------------- state
