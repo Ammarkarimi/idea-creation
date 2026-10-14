@@ -70,7 +70,7 @@ SCRIPT = [
     "And since the same filter slides everywhere, it finds the X wherever it is.",
     "Real networks learn their filters with backprop, and stack layers: edges become shapes, shapes become faces.",
     "That's a convolutional neural network. It's how AI spots cats, faces, and stop signs.",
-    "Level nine cleared. Next: transformers, how chatbots read. Follow for level ten.",
+    "Level nine cleared. Next: recurrent networks, AI with memory. Follow for level ten.",
 ]
 HOOK, PIXELS, FILTER, SLIDE, FOUND, SECOND, SHIFT, STACK, CNN, CTA = range(10)
 
@@ -349,7 +349,7 @@ def draw_overlays(frame, t):
         ta = word(CNN, w_)
         if ta <= t < T.start(CTA):
             pop_in(frame, tag(lab, (12, 14, 30), [CYAN, GREEN, PINK][j] + (255,), 36), (230 + 280 * j, 1052), t, ta)
-    draw_level_cleared(frame, t, T.start(CTA), 9, "TRANSFORMERS", word(CTA, "next:"), CONFETTI)
+    draw_level_cleared(frame, t, T.start(CTA), 9, "RECURRENT NETWORKS", word(CTA, "next:"), CONFETTI)
 
 
 def render_rgba(i, captions=True):

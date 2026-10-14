@@ -20,7 +20,7 @@ Because the same filter slides everywhere, it finds the pattern wherever it is.
 Real networks learn their filters with backprop (Level 8) and stack layers: edges → shapes → faces.
 
 ML as a Game · Level 9. Levels 1–8 are on the channel.
-Next level: Transformers, how chatbots read. Follow so you don't miss it.
+Next level: Recurrent Networks (RNNs), AI with memory. Follow so you don't miss it.
 
 #machinelearning #ai #cnn #computervision #deeplearning #shorts
 ```
@@ -40,7 +40,7 @@ Next level: Transformers, how chatbots read. Follow so you don't miss it.
 | 7 | And since the same filter slides everywhere, it finds the X wherever it is. | The X steps to a new spot and both maps' peaks move with it. "SAME FILTER EVERYWHERE → FINDS IT ANYWHERE". |
 | 8 | Real networks learn their filters with backprop, and stack layers: edges become shapes, shapes become faces. | "filters are learned by backprop (Level 8)", then a pixels → edges → shapes → faces stack. |
 | 9 | That's a convolutional neural network. It's how AI spots cats, faces, and stop signs. | "CONVOLUTIONAL NEURAL NETWORK (CNN)" with cats / faces / stop signs tags. |
-| 10 | Level nine cleared. Next: transformers, how chatbots read. Follow for level ten. | Confetti, then the "Next level" card. |
+| 10 | Level nine cleared. Next: recurrent networks, AI with memory. Follow for level ten. | Confetti, then the "Next level" card. |
 
 ## Accuracy notes
 - **Image:** 8×8, pixel values 0/1, holding a 5×5 X (top-left, later moved by 3 rows and 2 columns).
