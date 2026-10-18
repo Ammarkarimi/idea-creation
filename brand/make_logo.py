@@ -84,8 +84,8 @@ def finish(img, path):
 
 # ---------------------------------------------------------------- option 1: "Si"
 
-def option1():
-    img = background()
+def option1(bg=True):
+    img = background() if bg else Image.new("RGBA", (N, N), (0, 0, 0, 0))
     s = text_mask("S", int(N * 0.62), (C - N * 0.085, C + N * 0.03))
     img.alpha_composite(glow_layer(gradient_fill(s), int(N * 0.02)))
     # The "i": a rounded stem and a bulb for its dot.
@@ -174,11 +174,121 @@ def preview(paths, out):
     sheet.save(out)
 
 
+# ---------------------------------------------------------------- channel banner (matches option 1)
+
+BW, BH = 2560, 1440  # YouTube banner; the part visible on every device is the centre 1546 x 423
+SAFE_W, SAFE_H = 1546, 423
+TAGLINE = "Complex topics. Made simple."
+CHIPS = ["AI & ML", "Programming", "Tech explained"]
+
+
+def _grad(size, mask, c1=CYAN, c2=PURPLE):
+    w, h = size
+    t = np.clip(np.linspace(0, 1, w, dtype=np.float32), 0, 1)[None, :, None]
+    rgb = np.array(c1, np.float32) * (1 - t) + np.array(c2, np.float32) * t
+    rgb = np.repeat(rgb, h, axis=0)
+    a = np.asarray(mask, np.float32)[..., None]
+    return Image.fromarray(np.concatenate([rgb, a], -1).astype(np.uint8), "RGBA")
+
+
+def banner():
+    yy, xx = np.mgrid[0:BH, 0:BW].astype(np.float32)
+    r = np.clip(np.sqrt(((xx - BW / 2) / (BW * 0.55)) ** 2 + ((yy - BH / 2) / (BH * 0.6)) ** 2), 0, 1)[..., None]
+    arr = np.array(NAVY_IN, np.float32) * (1 - r) + np.array(NAVY_OUT, np.float32) * r
+    img = Image.fromarray(arr.astype(np.uint8), "RGB").convert("RGBA")
+    grid = Image.new("RGBA", (BW, BH), (0, 0, 0, 0))
+    d = ImageDraw.Draw(grid)
+    for x in range(0, BW, 64):  # faint grid, like the Shorts
+        d.line([(x, 0), (x, BH)], fill=(255, 255, 255, 10))
+    for y in range(0, BH, 64):
+        d.line([(0, y), (BW, y)], fill=(255, 255, 255, 10))
+    img.alpha_composite(grid)
+    # Soft neon glows at the edges (only seen on wide screens), plus a few idea sparks.
+    glow = Image.new("RGBA", (BW, BH), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(glow)
+    gd.ellipse((-300, -200, 700, 700), fill=CYAN + (55,))
+    gd.ellipse((BW - 700, BH - 700, BW + 300, BH + 200), fill=PURPLE + (65,))
+    img.alpha_composite(glow.filter(ImageFilter.GaussianBlur(160)))
+    rng = np.random.default_rng(7)
+    sparks = Image.new("RGBA", (BW, BH), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(sparks)
+    for _ in range(70):
+        x, y = rng.uniform(0, BW), rng.uniform(0, BH)
+        if abs(x - BW / 2) < SAFE_W / 2 + 40 and abs(y - BH / 2) < SAFE_H / 2 + 60:
+            continue  # keep the centre calm
+        rr = rng.uniform(2, 6)
+        col = [CYAN, PURPLE, YELLOW][int(rng.integers(3))]
+        sd.ellipse((x - rr, y - rr, x + rr, y + rr), fill=col + (int(rng.uniform(90, 200)),))
+    img.alpha_composite(add_glow(sparks, radius=6, strength=1.3))
+
+    # The Si mark (same drawing as the profile picture, without its background).
+    mark = option1(bg=False).resize((420, 420), Image.LANCZOS)
+    left = (BW - SAFE_W) // 2 + 40
+    img.alpha_composite(mark, (left, BH // 2 - 210 - 6))
+
+    # Wordmark: "smart" + "i" + "learner", where the dot of the i is the idea bulb.
+    fs = 150
+    fw = font("Black", fs)
+    parts = ["smart", "\u0131", "learner"]  # dotless i, the bulb becomes its dot
+    widths = [fw.getlength(p_) for p_ in parts]
+    x0 = left + 440
+    base_y = BH // 2 - 30
+    m = Image.new("L", (BW, BH), 0)
+    md = ImageDraw.Draw(m)
+    x = x0
+    for p_, w_ in zip(parts, widths):
+        md.text((x, base_y), p_, font=fw, fill=255, anchor="ls")
+        x += w_
+    word = _grad((BW, BH), m, WHITE, (205, 212, 255))
+    img.alpha_composite(add_glow(word, radius=10, strength=0.9))
+    i_x = x0 + widths[0] + widths[1] / 2
+    bl = Image.new("RGBA", (BW, BH), (0, 0, 0, 0))
+    # Reuse the bulb at banner scale: draw it on a temporary N x N canvas and paste.
+    tmp = Image.new("RGBA", (N, N), (0, 0, 0, 0))
+    bulb(tmp, C, C, N * 0.075)
+    tmp = tmp.resize((int(N * 0.16), int(N * 0.16)), Image.LANCZOS)
+    bl.alpha_composite(tmp, (int(i_x - tmp.width / 2), int(base_y - fs * 0.67 - tmp.height / 2)))
+    img.alpha_composite(bl)
+    # Tagline and topic chips (topic-neutral wording).
+    d = ImageDraw.Draw(img)
+    d.text((x0 + 6, base_y + 70), TAGLINE, font=font("Bold", 64), fill=(170, 180, 225), anchor="lm")
+    cx = x0 + 6
+    cy = base_y + 160
+    for k, chip in enumerate(CHIPS):
+        f = font("Bold", 40)
+        tw = f.getlength(chip)
+        col = [CYAN, PURPLE, YELLOW][k]
+        d.rounded_rectangle((cx, cy - 34, cx + tw + 56, cy + 34), radius=34, fill=(28, 26, 64, 255), outline=col, width=4)
+        d.text((cx + 28 + tw / 2, cy), chip, font=f, fill=WHITE, anchor="mm")
+        cx += tw + 56 + 22
+    right = max(x, cx)
+    return img.convert("RGB"), (left, right)
+
+
+def banner_preview(img, out):
+    """The banner with YouTube's device crop guides (for checking only)."""
+    pv = img.copy().convert("RGBA")
+    d = ImageDraw.Draw(pv)
+    boxes = [((BW - 2560) / 2, (BH - 1440) / 2, 2560, 1440, "TV"), ((BW - 2560) / 2, (BH - 423) / 2, 2560, 423, "desktop max"),
+             ((BW - 1546) / 2, (BH - 423) / 2, 1546, 423, "safe area (all devices)")]
+    for x, y, w, h, lab in boxes:
+        d.rectangle((x + 3, y + 3, x + w - 3, y + h - 3), outline=(255, 80, 80), width=6)
+        d.text((x + 16, y + 10), lab, font=font("Bold", 36), fill=(255, 120, 120))
+    pv.convert("RGB").resize((BW // 2, BH // 2), Image.LANCZOS).save(out)
+
+
 def main():
     paths = [finish(fn(), os.path.join(HERE, f"profile_option{k}.png"))
              for k, fn in enumerate((option1, option2, option3), 1)]
     preview(paths, os.path.join(HERE, "profile_preview.png"))
-    for p in paths:
+    # The chosen design, under clear names for download.
+    Image.open(paths[0]).save(os.path.join(HERE, "smartilearner_profile.png"), optimize=True)
+    bn, (left, right) = banner()
+    assert right <= (BW + SAFE_W) / 2 - 20, f"banner content runs past the safe area ({right})"
+    bn.save(os.path.join(HERE, "smartilearner_banner.png"), optimize=True)
+    banner_preview(bn, os.path.join(HERE, "banner_safe_area_check.png"))
+    for p in paths + ["smartilearner_profile.png", "smartilearner_banner.png"]:
+        p = os.path.join(HERE, p)
         print(p, os.path.getsize(p) // 1024, "KB")
 
 
